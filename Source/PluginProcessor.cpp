@@ -106,24 +106,11 @@ void SimpleEQFCCAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     leftChain.prepare(spec);
     rightChain.prepare(spec);
     
-    auto chainSettings = getChainSettings(apvts);
-    updatePeakFilter(chainSettings);
-    
-    auto lowCutCoefficient = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, sampleRate, 2 * (chainSettings.lowCutSlope + 1));
-    
-    auto& leftLowCut = leftChain.get<chainPositions::LowCut>();
-    auto& rightLowCut = rightChain.get<chainPositions::LowCut>();
-    updateCutFilter(leftLowCut, lowCutCoefficient, chainSettings.lowCutSlope);
-    updateCutFilter(rightLowCut, lowCutCoefficient, chainSettings.lowCutSlope);
-    
-    auto highCutCoefficient = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, sampleRate, 2 * (chainSettings.highCutSlope + 1));
-    
-    auto& leftHighCut = leftChain.get<chainPositions::HighCut>();
-    auto& rightHighCut = rightChain.get<chainPositions::HighCut>();
-    updateCutFilter(leftHighCut, highCutCoefficient, chainSettings.highCutSlope);
-    updateCutFilter(rightHighCut, highCutCoefficient, chainSettings.highCutSlope);
+    updateFilters();
     
 }
+
+
 
 void SimpleEQFCCAudioProcessor::releaseResources()
 {
@@ -172,23 +159,7 @@ void SimpleEQFCCAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    auto chainSettings = getChainSettings(apvts);
-    updatePeakFilter(chainSettings);
-    
-    auto cutCoefficient = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2 * (chainSettings.lowCutSlope + 1));
-    
-    auto& leftLowCut = leftChain.get<chainPositions::LowCut>();
-    auto& rightLowCut = rightChain.get<chainPositions::LowCut>();
-    
-    auto highCutCoefficient = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, getSampleRate(), 2 * (chainSettings.highCutSlope + 1));
-    
-    auto& leftHighCut = leftChain.get<chainPositions::HighCut>();
-    auto& rightHighCut = rightChain.get<chainPositions::HighCut>();
-    updateCutFilter(leftHighCut, highCutCoefficient, chainSettings.highCutSlope);
-    updateCutFilter(rightHighCut, highCutCoefficient, chainSettings.highCutSlope);
-    
-    updateCutFilter(leftLowCut, cutCoefficient, chainSettings.lowCutSlope);
-    updateCutFilter(rightLowCut, cutCoefficient, chainSettings.lowCutSlope);
+    updateFilters();
     
     juce::dsp::AudioBlock<float> block(buffer);
     
@@ -262,6 +233,35 @@ void SimpleEQFCCAudioProcessor::updatePeakFilter(const ChainSettings& chainSetti
 void SimpleEQFCCAudioProcessor::updateCoefficients(Coefficients &old, const Coefficients &replacements)
 {
     *old = *replacements;
+}
+
+void SimpleEQFCCAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings)
+{
+    auto cutCoefficient = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2 * (chainSettings.lowCutSlope + 1));
+    
+    auto& leftLowCut = leftChain.get<chainPositions::LowCut>();
+    updateCutFilter(leftLowCut, cutCoefficient, chainSettings.lowCutSlope);
+    
+    auto& rightLowCut = rightChain.get<chainPositions::LowCut>();
+    updateCutFilter(rightLowCut, cutCoefficient, chainSettings.lowCutSlope);
+}
+
+void SimpleEQFCCAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings)
+{
+    auto highCutCoefficient = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, getSampleRate(), 2 * (chainSettings.highCutSlope + 1));
+    
+    auto& leftHighCut = leftChain.get<chainPositions::HighCut>();
+    auto& rightHighCut = rightChain.get<chainPositions::HighCut>();
+    updateCutFilter(leftHighCut, highCutCoefficient, chainSettings.highCutSlope);
+    updateCutFilter(rightHighCut, highCutCoefficient, chainSettings.highCutSlope);
+}
+
+void SimpleEQFCCAudioProcessor::updateFilters()
+{
+    auto chainSettings = getChainSettings(apvts);
+    updateLowCutFilters(chainSettings);
+    updatePeakFilter(chainSettings);
+    updateHighCutFilters(chainSettings);
 }
 
 
