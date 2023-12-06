@@ -184,8 +184,8 @@ bool SimpleEQFCCAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SimpleEQFCCAudioProcessor::createEditor()
 {
-//    return new SimpleEQFCCAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new SimpleEQFCCAudioProcessorEditor (*this);
+//    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
