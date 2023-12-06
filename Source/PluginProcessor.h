@@ -97,12 +97,36 @@ private:
     
     using Coefficients = Filter::CoefficientsPtr;
     
-    void updateCoefficients(Coefficients &old, const Coefficients &replacements);
+    static void updateCoefficients(Coefficients &old, const Coefficients &replacements);
+    
+    template<int Index, typename ChainType, typename CoefficientType>
+    void update(ChainType& chain, const CoefficientType& coefficients)
+    {
+        updateCoefficients(chain.template get<Index>().coefficients, coefficients[Index]);
+        chain.template setBypassed<Index>(false);
+    }
     
     template<typename ChainType, typename CoefficientType>
     void updateCutFilter(ChainType& leftLowCut,
                          const CoefficientType& cutCoefficients,
-                         const Slope& lowCutSlope);
+                         const Slope& lowCutSlope)
+    {
+        switch( lowCutSlope)
+        {
+            case Slope_48:
+                update<3>(leftLowCut, cutCoefficients);
+                break;
+            case Slope_36:
+                update<2>(leftLowCut, cutCoefficients);
+                break;
+            case Slope_24:
+                update<1>(leftLowCut, cutCoefficients);
+                break;
+            case Slope_12:
+                update<0>(leftLowCut, cutCoefficients);
+                break;
+        }
+    }
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQFCCAudioProcessor)
